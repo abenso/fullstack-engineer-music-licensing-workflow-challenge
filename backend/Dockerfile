@@ -12,6 +12,7 @@ RUN mkdir src \
     && rm -rf src
 
 COPY src ./src
+COPY migrations ./migrations
 RUN touch src/main.rs \
     && cargo build --release
 
