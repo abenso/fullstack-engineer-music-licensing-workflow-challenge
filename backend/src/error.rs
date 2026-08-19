@@ -43,3 +43,40 @@ impl IntoResponse for AppError {
         (status, Json(json!({ "error": message }))).into_response()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn not_found_maps_to_404() {
+        assert_eq!(
+            AppError::NotFound.into_response().status(),
+            StatusCode::NOT_FOUND
+        );
+    }
+
+    #[test]
+    fn bad_request_maps_to_400() {
+        let error = AppError::BadRequest("bad input".to_string());
+        assert_eq!(error.into_response().status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn invalid_transition_maps_to_409() {
+        let error = AppError::InvalidTransition {
+            from: LicenseStatus::Draft,
+            to: LicenseStatus::Licensed,
+        };
+        assert_eq!(error.into_response().status(), StatusCode::CONFLICT);
+    }
+
+    #[test]
+    fn database_error_maps_to_500() {
+        let error = AppError::from(sqlx::Error::RowNotFound);
+        assert_eq!(
+            error.into_response().status(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
+    }
+}

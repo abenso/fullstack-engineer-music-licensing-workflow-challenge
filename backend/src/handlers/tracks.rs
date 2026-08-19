@@ -4,6 +4,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::domain::license::{LicenseStatus, can_transition};
+use crate::domain::track::is_valid_time_range;
 use crate::dto::{SceneTracks, TrackDetail, TrackSummary};
 use crate::error::AppError;
 use crate::events::LicenseStatusChanged;
@@ -30,7 +31,7 @@ pub async fn create_track(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    if payload.end_time_ms <= payload.start_time_ms {
+    if !is_valid_time_range(payload.start_time_ms, payload.end_time_ms) {
         return Err(AppError::BadRequest(
             "end_time_ms must be greater than start_time_ms".to_string(),
         ));
