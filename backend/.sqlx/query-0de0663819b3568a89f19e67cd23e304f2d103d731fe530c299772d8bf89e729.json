@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, track_id,\n               from_status AS \"from_status: LicenseStatus\",\n               to_status AS \"to_status: LicenseStatus\",\n               note, created_at\n        FROM license_status_events\n        WHERE track_id = $1\n        ORDER BY created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "license_status_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "track_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "license_status_events",
+            "name": "track_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "from_status: LicenseStatus",
+        "type_info": {
+          "Custom": {
+            "name": "license_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "requested",
+                "in_negotiation",
+                "approved",
+                "licensed",
+                "rejected"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "license_status_events",
+            "name": "from_status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "to_status: LicenseStatus",
+        "type_info": {
+          "Custom": {
+            "name": "license_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "requested",
+                "in_negotiation",
+                "approved",
+                "licensed",
+                "rejected"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "license_status_events",
+            "name": "to_status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "license_status_events",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "license_status_events",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "0de0663819b3568a89f19e67cd23e304f2d103d731fe530c299772d8bf89e729"
+}

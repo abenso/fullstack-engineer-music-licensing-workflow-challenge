@@ -1,4 +1,5 @@
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::domain::entities::Song;
 
@@ -20,6 +21,16 @@ pub async fn create(
         rights_holder
     )
     .fetch_one(pool)
+    .await
+}
+
+pub async fn find_by_id(pool: &PgPool, id: Uuid) -> sqlx::Result<Option<Song>> {
+    sqlx::query_as!(
+        Song,
+        "SELECT id, title, artist, rights_holder, created_at FROM songs WHERE id = $1",
+        id
+    )
+    .fetch_optional(pool)
     .await
 }
 

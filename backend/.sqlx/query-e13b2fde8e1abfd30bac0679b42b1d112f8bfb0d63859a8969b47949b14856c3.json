@@ -1,0 +1,126 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            t.id, t.start_time_ms, t.end_time_ms, t.updated_at,\n            t.license_status AS \"license_status: LicenseStatus\",\n            s.id AS song_id, s.title AS song_title, s.artist AS song_artist\n        FROM tracks t\n        JOIN songs s ON s.id = t.song_id\n        WHERE t.scene_id = $1\n        ORDER BY t.created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "start_time_ms",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "start_time_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "end_time_ms",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "end_time_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "license_status: LicenseStatus",
+        "type_info": {
+          "Custom": {
+            "name": "license_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "requested",
+                "in_negotiation",
+                "approved",
+                "licensed",
+                "rejected"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "license_status"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "song_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "songs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "song_title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "songs",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "song_artist",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "songs",
+            "name": "artist"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e13b2fde8e1abfd30bac0679b42b1d112f8bfb0d63859a8969b47949b14856c3"
+}

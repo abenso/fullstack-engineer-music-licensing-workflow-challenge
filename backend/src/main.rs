@@ -1,6 +1,6 @@
 use music_licensing_backend::config::Config;
 use music_licensing_backend::state::AppState;
-use music_licensing_backend::{db, routes};
+use music_licensing_backend::{db, events, routes};
 use std::net::SocketAddr;
 use tracing_subscriber::EnvFilter;
 
@@ -19,7 +19,10 @@ async fn main() {
     let pool = db::connect_and_migrate(&config.database_url).await;
     tracing::info!("database migrations applied");
 
-    let app = routes::build(AppState { pool });
+    let app = routes::build(AppState {
+        pool,
+        events_tx: events::channel(),
+    });
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
     let listener = tokio::net::TcpListener::bind(addr)
