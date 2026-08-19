@@ -1,5 +1,7 @@
 # Rust
 backend/target/
+backend/coverage.txt
+backend/coverage-comment.md
 
 # Environment files
 .env
