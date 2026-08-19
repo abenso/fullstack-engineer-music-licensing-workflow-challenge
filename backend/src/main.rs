@@ -1,6 +1,6 @@
-use axum::{Router, routing::get};
 use music_licensing_backend::config::Config;
-use music_licensing_backend::db;
+use music_licensing_backend::state::AppState;
+use music_licensing_backend::{db, routes};
 use std::net::SocketAddr;
 use tracing_subscriber::EnvFilter;
 
@@ -16,12 +16,10 @@ async fn main() {
 
     let config = Config::from_env();
 
-    // The pool isn't consumed anywhere yet — it starts backing API handlers
-    // once the repository layer lands in the next change.
-    let _pool = db::connect_and_migrate(&config.database_url).await;
+    let pool = db::connect_and_migrate(&config.database_url).await;
     tracing::info!("database migrations applied");
 
-    let app = Router::new().route("/health", get(health));
+    let app = routes::build(AppState { pool });
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
     let listener = tokio::net::TcpListener::bind(addr)
@@ -30,8 +28,4 @@ async fn main() {
 
     tracing::info!(%addr, "starting server");
     axum::serve(listener, app).await.expect("server error");
-}
-
-async fn health() -> &'static str {
-    "ok"
 }
