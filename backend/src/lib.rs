@@ -9,3 +9,4 @@ pub mod paths;
 pub mod repositories;
 pub mod routes;
 pub mod state;
+pub mod validation;
