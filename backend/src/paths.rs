@@ -2,6 +2,7 @@
 //! reused wherever a route is registered.
 
 pub const HEALTH: &str = "/health";
+pub const EVENTS: &str = "/events";
 
 pub const MOVIES: &str = "/movies";
 pub const MOVIE_BY_ID: &str = "/movies/{id}";

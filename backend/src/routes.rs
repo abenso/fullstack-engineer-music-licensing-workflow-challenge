@@ -1,13 +1,14 @@
 use axum::Router;
 use axum::routing::{get, patch, post};
 
-use crate::handlers::{movies, songs, tracks};
+use crate::handlers::{events, movies, songs, tracks};
 use crate::paths;
 use crate::state::AppState;
 
 pub fn build(state: AppState) -> Router {
     Router::new()
         .route(paths::HEALTH, get(health))
+        .route(paths::EVENTS, get(events::stream))
         .route(
             paths::MOVIES,
             post(movies::create_movie).get(movies::list_movies),
