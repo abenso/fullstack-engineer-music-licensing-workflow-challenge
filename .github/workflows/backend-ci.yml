@@ -75,22 +75,38 @@ jobs:
         id: coverage
         run: cargo llvm-cov --all-targets --summary-only --fail-under-lines 80 | tee coverage.txt
 
-      - name: Build coverage comment
+      # Full per-file breakdown goes to the run's Job Summary tab (one click
+      # away), not the PR comment — keeps the comment itself short.
+      - name: Publish full coverage table to job summary
         if: always() && steps.coverage.outcome != 'skipped'
         run: |
           {
-            echo "## Backend test coverage"
-            echo ""
-            echo "Minimum required: **80%** line coverage (CI fails below this)."
+            echo "### Backend coverage — full detail"
             echo ""
             echo '```'
             cat coverage.txt
             echo '```'
-          } > coverage-comment.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Extract coverage result
+        if: always() && steps.coverage.outcome != 'skipped'
+        id: cov
+        run: |
+          echo "percent=$(grep '^TOTAL' coverage.txt | awk '{print $10}')" >> "$GITHUB_OUTPUT"
+          if [ "${{ steps.coverage.outcome }}" = "success" ]; then
+            echo "icon=✅" >> "$GITHUB_OUTPUT"
+          else
+            echo "icon=❌" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Comment coverage on PR
         if: always() && steps.coverage.outcome != 'skipped' && github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: coverage
-          path: backend/coverage-comment.md
+          message: |
+            ## Backend test coverage
+
+            ${{ steps.cov.outputs.icon }} **${{ steps.cov.outputs.percent }}** line coverage (minimum required: **80%**)
+
+            Full per-file breakdown: see the **Summary** tab of [this run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
