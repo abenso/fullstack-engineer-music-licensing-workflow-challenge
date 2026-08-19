@@ -17,6 +17,9 @@ defaults:
 
 env:
   DATABASE_URL: postgres://licensing:licensing@localhost:5432/licensing
+  # sqlx::query!/query_as! use the checked-in .sqlx/ cache instead of
+  # requiring a live, migrated database just to compile.
+  SQLX_OFFLINE: "true"
 
 jobs:
   check:
