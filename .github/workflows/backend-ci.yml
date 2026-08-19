@@ -25,8 +25,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
 
-    # Postgres is started even though no integration tests use it yet, so we
-    # don't have to touch this workflow again once we add them later.
+    # Backs the integration tests (each gets its own database, created and
+    # migrated automatically by #[sqlx::test]).
     services:
       postgres:
         image: postgres:16-alpine
@@ -48,12 +48,15 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: backend
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Check formatting
         run: cargo fmt --check
@@ -61,5 +64,7 @@ jobs:
       - name: Clippy (deny warnings)
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Run tests
-        run: cargo test --all-targets
+      # Runs the full suite (unit + integration) and fails the job if line
+      # coverage drops below 80%.
+      - name: Test with coverage (min 80% lines)
+        run: cargo llvm-cov --all-targets --fail-under-lines 80
