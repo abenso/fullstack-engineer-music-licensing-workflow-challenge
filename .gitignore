@@ -1,0 +1,9 @@
+# Rust
+backend/target/
+
+# Environment files
+.env
+*.env.local
+
+# OS
+.DS_Store
