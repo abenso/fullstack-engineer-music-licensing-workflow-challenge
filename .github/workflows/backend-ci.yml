@@ -24,9 +24,12 @@ env:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # to post/update the coverage comment
 
-    # Postgres is started even though no integration tests use it yet, so we
-    # don't have to touch this workflow again once we add them later.
+    # Backs the integration tests (each gets its own database, created and
+    # migrated automatically by #[sqlx::test]).
     services:
       postgres:
         image: postgres:16-alpine
@@ -48,12 +51,15 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: backend
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Check formatting
         run: cargo fmt --check
@@ -61,5 +67,46 @@ jobs:
       - name: Clippy (deny warnings)
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Run tests
-        run: cargo test --all-targets
+      # Runs the full suite (unit + integration) and fails the job if line
+      # coverage drops below 80%. `tee` keeps the report on disk even when
+      # --fail-under-lines makes this step exit non-zero, so the comment
+      # step below can still show it.
+      - name: Test with coverage (min 80% lines)
+        id: coverage
+        run: cargo llvm-cov --all-targets --summary-only --fail-under-lines 80 | tee coverage.txt
+
+      # Full per-file breakdown goes to the run's Job Summary tab (one click
+      # away), not the PR comment — keeps the comment itself short.
+      - name: Publish full coverage table to job summary
+        if: always() && steps.coverage.outcome != 'skipped'
+        run: |
+          {
+            echo "### Backend coverage — full detail"
+            echo ""
+            echo '```'
+            cat coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Extract coverage result
+        if: always() && steps.coverage.outcome != 'skipped'
+        id: cov
+        run: |
+          echo "percent=$(grep '^TOTAL' coverage.txt | awk '{print $10}')" >> "$GITHUB_OUTPUT"
+          if [ "${{ steps.coverage.outcome }}" = "success" ]; then
+            echo "icon=✅" >> "$GITHUB_OUTPUT"
+          else
+            echo "icon=❌" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment coverage on PR
+        if: always() && steps.coverage.outcome != 'skipped' && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage
+          message: |
+            ## Backend test coverage
+
+            ${{ steps.cov.outputs.icon }} **${{ steps.cov.outputs.percent }}** line coverage (minimum required: **80%**)
+
+            Full per-file breakdown: see the **Summary** tab of [this run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
