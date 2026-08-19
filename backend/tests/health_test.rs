@@ -19,3 +19,25 @@ async fn health_returns_ok(pool: PgPool) {
 
     assert_eq!(response.status(), StatusCode::OK);
 }
+
+/// A browser-based frontend on a different origin needs this header on
+/// every response, not just on a pre-flight OPTIONS request.
+#[sqlx::test]
+async fn responses_allow_cross_origin_requests(pool: PgPool) {
+    let app = common::app(pool);
+
+    let request = Request::builder()
+        .uri("/health")
+        .header("origin", "http://localhost:3000")
+        .body(Body::empty())
+        .unwrap();
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(
+        response
+            .headers()
+            .get("access-control-allow-origin")
+            .unwrap(),
+        "*"
+    );
+}
