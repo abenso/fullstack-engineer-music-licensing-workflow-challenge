@@ -1,0 +1,150 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            sc.id AS scene_id, sc.name AS scene_name,\n            t.id AS track_id, t.start_time_ms, t.end_time_ms, t.updated_at,\n            t.license_status AS \"license_status: LicenseStatus\",\n            s.id AS song_id, s.title AS song_title, s.artist AS song_artist\n        FROM scenes sc\n        JOIN tracks t ON t.scene_id = sc.id\n        JOIN songs s ON s.id = t.song_id\n        WHERE sc.movie_id = $1\n        ORDER BY sc.created_at, t.created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scene_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "scenes",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "scene_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scenes",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "track_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "start_time_ms",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "start_time_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "end_time_ms",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "end_time_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "license_status: LicenseStatus",
+        "type_info": {
+          "Custom": {
+            "name": "license_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "requested",
+                "in_negotiation",
+                "approved",
+                "licensed",
+                "rejected"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "tracks",
+            "name": "license_status"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "song_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "songs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "song_title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "songs",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "song_artist",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "songs",
+            "name": "artist"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7d2ed192d27b238113bac5ebd8ef2db51fe5a1db0ccd9ad7aba9ec2685445108"
+}

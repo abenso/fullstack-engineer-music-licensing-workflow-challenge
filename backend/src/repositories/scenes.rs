@@ -18,6 +18,16 @@ pub async fn create(pool: &PgPool, movie_id: Uuid, name: &str) -> sqlx::Result<S
     .await
 }
 
+pub async fn find_by_id(pool: &PgPool, id: Uuid) -> sqlx::Result<Option<Scene>> {
+    sqlx::query_as!(
+        Scene,
+        "SELECT id, movie_id, name, created_at FROM scenes WHERE id = $1",
+        id
+    )
+    .fetch_optional(pool)
+    .await
+}
+
 pub async fn list_for_movie(pool: &PgPool, movie_id: Uuid) -> sqlx::Result<Vec<Scene>> {
     sqlx::query_as!(
         Scene,
