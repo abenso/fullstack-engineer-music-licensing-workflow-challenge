@@ -1,7 +1,6 @@
-mod config;
-
 use axum::{Router, routing::get};
-use config::Config;
+use music_licensing_backend::config::Config;
+use music_licensing_backend::db;
 use std::net::SocketAddr;
 use tracing_subscriber::EnvFilter;
 
@@ -16,10 +15,11 @@ async fn main() {
         .init();
 
     let config = Config::from_env();
-    tracing::debug!(
-        has_database_url = !config.database_url.is_empty(),
-        "config loaded"
-    );
+
+    // The pool isn't consumed anywhere yet — it starts backing API handlers
+    // once the repository layer lands in the next change.
+    let _pool = db::connect_and_migrate(&config.database_url).await;
+    tracing::info!("database migrations applied");
 
     let app = Router::new().route("/health", get(health));
 
