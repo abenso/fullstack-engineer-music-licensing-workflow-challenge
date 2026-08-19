@@ -158,6 +158,9 @@ track starts in the `Draft` license status.
 
 ### Licensing workflow
 
+See [`docs/license-workflow.md`](docs/license-workflow.md) for the full
+transition table and what each move means.
+
 ```mermaid
 stateDiagram-v2
     [*] --> Draft
