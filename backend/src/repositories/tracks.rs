@@ -53,25 +53,39 @@ pub async fn find_by_id(pool: &PgPool, id: Uuid) -> sqlx::Result<Option<Track>> 
     .await
 }
 
-pub async fn update_license_status(
-    pool: &PgPool,
+/// Moves a track to `new_status`, but only if it's still at
+/// `expected_status`. Returns `None` if it isn't — i.e. someone else
+/// already changed it between the caller's read and this write — so the
+/// caller can treat that as a conflict instead of silently overwriting it.
+///
+/// Takes a generic executor (rather than `&PgPool`) so it can run inside
+/// the same transaction as the `license_status_events` insert: those two
+/// writes must succeed or fail together, or the audit trail could disagree
+/// with the track's actual status.
+pub async fn try_update_license_status<'e, E>(
+    executor: E,
     id: Uuid,
-    status: LicenseStatus,
-) -> sqlx::Result<Track> {
+    expected_status: LicenseStatus,
+    new_status: LicenseStatus,
+) -> sqlx::Result<Option<Track>>
+where
+    E: sqlx::PgExecutor<'e>,
+{
     sqlx::query_as!(
         Track,
         r#"
         UPDATE tracks
         SET license_status = $1, updated_at = now()
-        WHERE id = $2
+        WHERE id = $2 AND license_status = $3
         RETURNING id, scene_id, song_id, start_time_ms, end_time_ms,
                   license_status AS "license_status: LicenseStatus",
                   created_at, updated_at
         "#,
-        status as LicenseStatus,
-        id
+        new_status as LicenseStatus,
+        id,
+        expected_status as LicenseStatus,
     )
-    .fetch_one(pool)
+    .fetch_optional(executor)
     .await
 }
 

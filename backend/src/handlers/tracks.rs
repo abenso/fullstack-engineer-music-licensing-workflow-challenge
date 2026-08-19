@@ -23,6 +23,13 @@ pub async fn create_track(
     Path(scene_id): Path<Uuid>,
     Json(payload): Json<CreateTrackRequest>,
 ) -> Result<Json<TrackDetail>, AppError> {
+    if !is_valid_time_range(payload.start_time_ms, payload.end_time_ms) {
+        return Err(AppError::BadRequest(
+            "start_time_ms must be >= 0 and end_time_ms must be greater than start_time_ms"
+                .to_string(),
+        ));
+    }
+
     scenes::find_by_id(&state.pool, scene_id)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -30,12 +37,6 @@ pub async fn create_track(
     songs::find_by_id(&state.pool, payload.song_id)
         .await?
         .ok_or(AppError::NotFound)?;
-
-    if !is_valid_time_range(payload.start_time_ms, payload.end_time_ms) {
-        return Err(AppError::BadRequest(
-            "end_time_ms must be greater than start_time_ms".to_string(),
-        ));
-    }
 
     let created = tracks::create(
         &state.pool,
@@ -101,9 +102,33 @@ pub async fn update_license(
         });
     }
 
-    tracks::update_license_status(&state.pool, track_id, payload.status).await?;
+    // The status update and the audit event must land together: begin a
+    // transaction, and guard the update on the status we just read still
+    // being current. If it isn't (another request changed it in between),
+    // roll back and report the *actual* current status instead of silently
+    // overwriting someone else's change.
+    let mut tx = state.pool.begin().await?;
+
+    let updated = tracks::try_update_license_status(
+        &mut *tx,
+        track_id,
+        current.license_status,
+        payload.status,
+    )
+    .await?;
+
+    if updated.is_none() {
+        let actual = tracks::find_by_id(&state.pool, track_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        return Err(AppError::InvalidTransition {
+            from: actual.license_status,
+            to: payload.status,
+        });
+    }
+
     license_events::record(
-        &state.pool,
+        &mut *tx,
         track_id,
         Some(current.license_status),
         payload.status,
@@ -111,13 +136,15 @@ pub async fn update_license(
     )
     .await?;
 
+    tx.commit().await?;
+
     let detail = tracks::find_detail_by_id(&state.pool, track_id)
         .await?
         .ok_or(AppError::NotFound)?;
 
-    // No receivers yet is expected (the SSE endpoint isn't wired up until
-    // the next change) — send() only errors when the channel is fully
-    // closed, which never happens while AppState holds the sender.
+    // No connected SSE clients is a normal case, not an error — send()
+    // only errors when the channel is fully closed, which never happens
+    // while AppState holds the sender.
     let _ = state.events_tx.send(LicenseStatusChanged {
         track_id,
         scene_id: current.scene_id,
