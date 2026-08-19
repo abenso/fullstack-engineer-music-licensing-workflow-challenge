@@ -1,0 +1,62 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches: [main, dev]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  DATABASE_URL: postgres://licensing:licensing@localhost:5432/licensing
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    # Postgres is started even though no integration tests use it yet, so we
+    # don't have to touch this workflow again once we add them later.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: licensing
+          POSTGRES_PASSWORD: licensing
+          POSTGRES_DB: licensing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U licensing -d licensing"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all-targets
