@@ -25,6 +25,39 @@ async fn creates_and_fetches_a_movie(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn lists_movies_and_their_scenes(pool: PgPool) {
+    let app = common::app(pool);
+
+    let (_, movie) = common::request(
+        app.clone(),
+        "POST",
+        "/movies",
+        Some(json!({ "title": "Rocky IV" })),
+    )
+    .await;
+    let movie_id = movie["id"].as_str().unwrap();
+
+    let (status, body) = common::request(app.clone(), "GET", "/movies", None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.as_array().unwrap().iter().any(|m| m["id"] == movie_id));
+
+    common::request(
+        app.clone(),
+        "POST",
+        &format!("/movies/{movie_id}/scenes"),
+        Some(json!({ "name": "Training Montage" })),
+    )
+    .await;
+
+    let (status, body) =
+        common::request(app, "GET", &format!("/movies/{movie_id}/scenes"), None).await;
+    assert_eq!(status, StatusCode::OK);
+    let scenes = body.as_array().unwrap();
+    assert_eq!(scenes.len(), 1);
+    assert_eq!(scenes[0]["name"], "Training Montage");
+}
+
+#[sqlx::test]
 async fn unknown_movie_returns_404(pool: PgPool) {
     let app = common::app(pool);
 
