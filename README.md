@@ -255,7 +255,7 @@ history for a track is always available, not just its current state.
 | License status storage | Postgres native `enum` + a `license_status_events` audit table | The enum rejects invalid values at the database level, not just in application code. The audit table (rather than only a "current status" column) preserves the full negotiation history practically for free. |
 | Error handling | A single `AppError` enum implementing `IntoResponse` | One place mapping domain/DB failures to HTTP status codes, instead of repeating `match` logic in every handler. |
 | Testing | Unit tests for pure logic (the license state machine, time-range validation, error mapping) + HTTP-level integration tests (`tower::ServiceExt::oneshot` against the real `Router`, with `#[sqlx::test]` giving each test an isolated, auto-migrated database) | Fast, DB-free tests for business rules; realistic tests for everything that touches the database, without hand-rolled mocks. |
-| Concurrency safety | Compare-and-swap on the license status update (`UPDATE ... WHERE license_status = <expected>`), in the same transaction as the audit event insert | Two concurrent `PATCH` requests on the same track must not both apply against the same stale read — one has to lose cleanly (`409`) instead of silently overwriting the other or leaving the audit trail out of sync. Verified with a real 20-way concurrent request test, not just a single-threaded one. |
+| Concurrency safety | Compare-and-swap on the license status update (`UPDATE ... WHERE license_status = <expected>`), in the same transaction as the audit event insert | Two concurrent `PATCH` requests on the same track must not both apply against the same stale read — one has to lose cleanly (`409`) instead of silently overwriting the other or leaving the audit trail out of sync. `tests/license_concurrency_test.rs` simulates this deterministically (two callers with the same stale read, calling the repository directly) rather than spawning real concurrent HTTP requests, which would be non-deterministic in CI. The fix was additionally exercised once, by hand, with a real 20-concurrent-request `curl` load test against a running instance — not part of the automated suite, but confirmed the same behavior under real concurrency. |
 | CORS | `tower_http::cors::CorsLayer::permissive()` | The API contract is meant to be called from a browser-based frontend on a different origin; without CORS headers, the browser blocks the request before it reaches the handlers. No auth/cookies exist yet to warrant restricting it further. |
 
 ## Testing
@@ -330,6 +330,10 @@ DATABASE_URL="postgres://licensing:licensing@localhost:5432/licensing" cargo llv
 - **Rights-management integration.** If a real external system existed,
   it could call into the license workflow via a webhook instead of a
   person doing it manually — see [Assumptions](#assumptions--constraints).
+- **Pagination.** The `GET` list endpoints (`/movies`, `/songs`, and the
+  track listings) return everything in one response. Fine at today's
+  scale; a catalog large enough for this to matter would need cursor- or
+  offset-based pagination.
 
 ## Project structure
 
