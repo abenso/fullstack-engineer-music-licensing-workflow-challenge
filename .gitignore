@@ -1,0 +1,10 @@
+# Rust
+backend/target/
+backend/coverage.txt
+
+# Environment files
+.env
+*.env.local
+
+# OS
+.DS_Store
