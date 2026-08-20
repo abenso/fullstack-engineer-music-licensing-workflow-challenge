@@ -4,13 +4,18 @@ use uuid::Uuid;
 use crate::domain::entities::LicenseStatusEvent;
 use crate::domain::license::LicenseStatus;
 
-pub async fn record(
-    pool: &PgPool,
+/// Takes a generic executor so this can run inside the same transaction as
+/// the track's status update — see `tracks::try_update_license_status`.
+pub async fn record<'e, E>(
+    executor: E,
     track_id: Uuid,
     from_status: Option<LicenseStatus>,
     to_status: LicenseStatus,
     note: Option<&str>,
-) -> sqlx::Result<LicenseStatusEvent> {
+) -> sqlx::Result<LicenseStatusEvent>
+where
+    E: sqlx::PgExecutor<'e>,
+{
     sqlx::query_as!(
         LicenseStatusEvent,
         r#"
@@ -26,7 +31,7 @@ pub async fn record(
         to_status as LicenseStatus,
         note
     )
-    .fetch_one(pool)
+    .fetch_one(executor)
     .await
 }
 

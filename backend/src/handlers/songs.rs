@@ -6,6 +6,7 @@ use crate::domain::entities::Song;
 use crate::error::AppError;
 use crate::repositories::songs;
 use crate::state::AppState;
+use crate::validation::require_non_blank;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSongRequest {
@@ -18,6 +19,10 @@ pub async fn create_song(
     State(state): State<AppState>,
     Json(payload): Json<CreateSongRequest>,
 ) -> Result<Json<Song>, AppError> {
+    require_non_blank("title", &payload.title)?;
+    require_non_blank("artist", &payload.artist)?;
+    require_non_blank("rights_holder", &payload.rights_holder)?;
+
     let created = songs::create(
         &state.pool,
         &payload.title,

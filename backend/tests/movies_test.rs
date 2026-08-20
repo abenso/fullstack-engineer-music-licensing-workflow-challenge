@@ -58,6 +58,17 @@ async fn lists_movies_and_their_scenes(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn rejects_a_blank_movie_title(pool: PgPool) {
+    let app = common::app(pool);
+
+    let (status, body) =
+        common::request(app, "POST", "/movies", Some(json!({ "title": "   " }))).await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body["error"].as_str().unwrap().contains("title"));
+}
+
+#[sqlx::test]
 async fn unknown_movie_returns_404(pool: PgPool) {
     let app = common::app(pool);
 

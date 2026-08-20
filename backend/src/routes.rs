@@ -1,5 +1,6 @@
 use axum::Router;
 use axum::routing::{get, patch, post};
+use tower_http::cors::CorsLayer;
 
 use crate::handlers::{events, movies, songs, tracks};
 use crate::paths;
@@ -29,6 +30,10 @@ pub fn build(state: AppState) -> Router {
         )
         .route(paths::TRACK_BY_ID, get(tracks::get_track))
         .route(paths::TRACK_LICENSE, patch(tracks::update_license))
+        // No auth/cookies to protect, so a permissive policy is enough to
+        // let a browser-based frontend on a different origin call this API
+        // (including EventSource against GET /events).
+        .layer(CorsLayer::permissive())
         .with_state(state)
 }
 

@@ -22,6 +22,23 @@ async fn rejects_a_track_with_an_invalid_time_range(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn rejects_a_track_with_a_negative_start_time(pool: PgPool) {
+    let app = common::app(pool);
+    let (_, scene_id, song_id) = common::seed_movie_scene_song(&app).await;
+
+    let (status, body) = common::request(
+        app,
+        "POST",
+        &format!("/scenes/{scene_id}/tracks"),
+        Some(json!({ "song_id": song_id, "start_time_ms": -1, "end_time_ms": 100 })),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body["error"].as_str().unwrap().contains("start_time_ms"));
+}
+
+#[sqlx::test]
 async fn lists_tracks_by_scene_and_by_movie(pool: PgPool) {
     let app = common::app(pool);
     let (movie_id, scene_id, song_id) = common::seed_movie_scene_song(&app).await;
@@ -72,7 +89,7 @@ async fn rejects_an_out_of_order_license_transition(pool: PgPool) {
 
     // Draft -> Licensed skips Requested/InNegotiation/Approved.
     let (status, body) = common::request(
-        app,
+        app.clone(),
         "PATCH",
         &format!("/tracks/{track_id}/license"),
         Some(json!({ "status": "Licensed" })),
@@ -81,6 +98,12 @@ async fn rejects_an_out_of_order_license_transition(pool: PgPool) {
 
     assert_eq!(status, StatusCode::CONFLICT);
     assert!(body["error"].as_str().unwrap().contains("Draft"));
+
+    // The rejected attempt must not leave a partial audit trail behind —
+    // status update and history insert are one transaction.
+    let (_, detail) = common::request(app, "GET", &format!("/tracks/{track_id}"), None).await;
+    assert_eq!(detail["license_status"], "Draft");
+    assert!(detail["history"].as_array().unwrap().is_empty());
 }
 
 #[sqlx::test]

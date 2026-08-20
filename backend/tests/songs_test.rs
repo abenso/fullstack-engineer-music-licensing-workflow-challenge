@@ -22,3 +22,19 @@ async fn creates_and_lists_songs(pool: PgPool) {
     assert_eq!(status, StatusCode::OK);
     assert!(body.as_array().unwrap().iter().any(|s| s["id"] == song_id));
 }
+
+#[sqlx::test]
+async fn rejects_a_blank_song_field(pool: PgPool) {
+    let app = common::app(pool);
+
+    let (status, body) = common::request(
+        app,
+        "POST",
+        "/songs",
+        Some(json!({ "title": "Eye of the Tiger", "artist": "", "rights_holder": "Sony" })),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body["error"].as_str().unwrap().contains("artist"));
+}
